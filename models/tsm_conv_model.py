@@ -874,13 +874,13 @@ class TSN(nn.Module):
                                                    GroupRandomHorizontalFlip(is_flow=False)])
 
 class Network(nn.Module):
-    def __init__(self, pretrained=True, n_class=10):
+    def __init__(self, backbone='resnet50', pretrained=True, n_class=10):
         super().__init__()
 
-        self.net = TSN(400, 16, 'RGB', 'resnet50', partial_bn=False, is_shift=True, shift_div=8, shift_place='blockres')
+        self.net = TSN(400, 16, 'RGB', backbone, partial_bn=False, is_shift=True, shift_div=8, shift_place='blockres')
         self.conv_dim = 2048
 
-        if pretrained:
+        if pretrained and backbone == 'resnet50':
             checkpoint = torch.load('models/TSM_kinetics_RGB_resnet50_shift8_blockres_avg_segment16_e50.pth')
             checkpoint = checkpoint['state_dict']
 
@@ -898,12 +898,12 @@ class Network(nn.Module):
         self.net.base_model.fc = nn.Identity()
 
         self.pool = nn.Sequential(
-            nn.Conv3d(self.conv_dim, self.conv_dim, 3, stride=1, padding=1),
+            nn.Conv3d(self.conv_dim, 512, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool3d((1, 1, 1))
         )
 
-        self.classifier = nn.Linear(self.conv_dim, n_class)
+        self.classifier = nn.Linear(512, n_class)
 
     def forward(self, x, average_logits=True):
         # x is a 5D tensor (batch, channel, frame, height, width)

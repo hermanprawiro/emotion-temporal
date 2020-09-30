@@ -1,7 +1,10 @@
+import glob
+import os
 import random
 
 import numpy as np
 import torch
+from PIL import Image
 
 
 class VideoRecord(object):
@@ -80,3 +83,74 @@ class DenseDataset(torch.utils.data.Dataset):
             indices = np.zeros((self.num_segments,))
 
         return indices
+
+
+class SimpleImageDataset(torch.utils.data.Dataset):
+    def __init__(self, root, transform=None):
+        super().__init__()
+        self.root = root
+        self.transform = transform
+
+        if not os.path.isdir(self.root):
+            raise NotADirectoryError("The root is not a directory or does not exist.")
+
+        self.images_list = []
+        self._parse_list()
+
+    def __len__(self):
+        return len(self.images_list)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.images_list[idx])
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img
+
+    def _parse_list(self):
+        self.images_list = sorted(glob.glob(os.path.join(self.root, "*.jpg")))
+
+
+class SimpleSparseDataset(SparseDataset):
+    def __init__(self, root, num_clips=1, num_segments=16, sample_uniform=True, transform=None):
+        super().__init__(num_segments)
+        self.root = root
+        self.transform = transform
+        self.num_clips = num_clips
+        self.sample_uniform = sample_uniform
+
+        if not os.path.isdir(self.root):
+            raise NotADirectoryError("The root is not a directory or does not exist.")
+
+        self.images_list = []
+        self._parse_list()
+
+    def __len__(self):
+        return self.num_clips
+
+    def __getitem__(self, idx):
+        num_frames = len(self.images_list)
+
+        if self.sample_uniform:
+            indices = self._get_test_indices(num_frames)
+        else:
+            indices = self._get_train_indices(num_frames)
+        
+        return self._load_video(indices)
+
+    def _load_video(self, indices):
+        imgs = []
+        for seg_idx in indices:
+            seg_idx = int(seg_idx)
+            img = torch.from_numpy(np.array(Image.open(self.images_list[seg_idx])))
+            imgs.append(img)
+
+        imgs = torch.stack(imgs, dim=0)
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+
+        return imgs
+
+    def _parse_list(self):
+        self.images_list = sorted(glob.glob(os.path.join(self.root, "*.jpg")))

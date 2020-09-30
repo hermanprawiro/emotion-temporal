@@ -12,7 +12,7 @@ from .generic import DenseDataset, SparseDataset, VideoRecord
 DATASET_ROOT = R"F:\Datasets\eNTERFACE\Align"
 
 class Enterface_Sparse(SparseDataset):
-    def __init__(self, root='', train=True, num_segments=16, which_split=1, transform=None):
+    def __init__(self, root='', train=True, num_segments=16, which_split=1, transform=None, **kwargs):
         super().__init__(num_segments)
         self.train = train
         self.which_split = which_split
@@ -82,7 +82,7 @@ class Enterface_Sparse(SparseDataset):
         
 
 class Enterface_Dense(DenseDataset):
-    def __init__(self, root='', train=True, num_segments=10, which_split=1, transform=None, num_frames_per_clip=16, sample_uniform=False, temporal_stride=1):
+    def __init__(self, root='', train=True, num_segments=10, which_split=1, transform=None, num_frames_per_clip=16, sample_uniform=False, temporal_stride=1, **kwargs):
         super().__init__(num_segments, num_frames_per_clip, temporal_stride)
         self.train = train
         self.which_split = which_split

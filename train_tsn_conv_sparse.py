@@ -12,7 +12,8 @@ from sklearn.metrics import confusion_matrix
 from torch.utils.tensorboard import SummaryWriter
 
 from datasets.enterface import Enterface_Sparse
-from datasets.ctbc import CTBC_Sparse
+# from datasets.ctbc import CTBC_Sparse
+from datasets.ctbc_v2 import CTBC_Sparse
 from models.tsn_conv_model import Network
 from utils import misc
 from utils import transforms_video as tfv
@@ -20,7 +21,7 @@ from utils import transforms_video as tfv
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, default="enterface")
+parser.add_argument("--dataset", type=str, default="ctbc2")
 parser.add_argument("--n_epochs", type=int, default=30)
 parser.add_argument("--batch_size", type=int, default=16)
 parser.add_argument("--learning_rate", type=float, default=2e-4)
@@ -33,7 +34,9 @@ parser.add_argument("--image_res", type=int, default=112)
 parser.add_argument("--backbone", type=str, default="resnet18")
 parser.add_argument("--pooling", type=str, default="conv")
 parser.add_argument("--split", type=int, default=1)
+parser.add_argument("--camera", type=int, default=0)
 parser.add_argument("--n_segments", type=int, default=16)
+parser.add_argument("--static", action="store_true")
 parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
 parser.add_argument("--log_path", type=str, default="logs")
 parser.add_argument("--comment", type=str, default="")
@@ -44,6 +47,7 @@ def main(args):
         torch.backends.cudnn.benchmark = True
 
     save_name = "tsn_conv_sparse_{}_{}_{:d}seg_split{:d}_bs{}_wd{}".format(args.backbone, args.dataset, args.n_segments, args.split, args.batch_size, args.weight_decay)
+    save_name += "_{}_cam{}".format('static' if args.static else 'dynamic', args.camera)
     if args.comment != '':
         save_name += "_{}".format(args.comment)
     
@@ -70,14 +74,14 @@ def main(args):
     if args.dataset == 'enterface':
         dset = Enterface_Sparse
         n_class = 6
-    elif args.dataset == 'ctbc':
+    elif args.dataset in ['ctbc', 'ctbc2']:
         dset = CTBC_Sparse
         n_class = 7
     else:
         raise NotImplementedError('Dataset not yet implemented!')
 
-    trainset = dset(train=True, num_segments=args.n_segments, which_split=args.split, transform=train_tfs)
-    testset = dset(train=False, num_segments=args.n_segments, which_split=args.split, transform=test_tfs)
+    trainset = dset(train=True, static=args.static, which_cam=args.camera, num_segments=args.n_segments, which_split=args.split, transform=train_tfs)
+    testset = dset(train=False, static=args.static, which_cam=args.camera, num_segments=args.n_segments, which_split=args.split, transform=test_tfs)
 
     train_loader = torch.utils.data.DataLoader(trainset, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(testset, shuffle=False, batch_size=args.batch_size, num_workers=args.n_workers)
@@ -85,10 +89,10 @@ def main(args):
     net = Network(backbone=args.backbone, pooling=args.pooling, n_class=n_class).to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr=args.learning_rate, betas=(args.beta1, args.beta2), weight_decay=args.weight_decay)
 
-    checkpoint = torch.load("pretrained/resnet18_default_bs32_wd0.001_augment_blur_cosine/checkpoint_best.pth")['state_dict']
-    del(checkpoint['fc.0.weight'])
-    del(checkpoint['fc.0.bias'])
-    net.net.load_state_dict(checkpoint, strict=False)
+    # checkpoint = torch.load("pretrained/resnet18_default_bs32_wd0.001_augment_blur_cosine/checkpoint_best.pth")['state_dict']
+    # del(checkpoint['fc.0.weight'])
+    # del(checkpoint['fc.0.bias'])
+    # net.net.load_state_dict(checkpoint, strict=False)
 
     # if args.split == 1:
     #     lbl_weights = torch.tensor([56, 15, 48, 71, 65, 87, 62], dtype=torch.float32, device=device)

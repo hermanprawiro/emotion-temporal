@@ -9,19 +9,22 @@ from PIL import Image
 
 from .generic import DenseDataset, SparseDataset, VideoRecord
 
-DATASET_ROOT = R"G:\Datasets\CTBCYogie\cropped_frames"
-# DATASET_ROOT = R"G:\Datasets\CTBCYogie\cropped_frames_dynamic"
+DATASET_ROOT = R"G:\Datasets\CTBCYogie2\cropped_frames"
+
 
 class CTBC_Sparse(SparseDataset):
-    def __init__(self, root='', train=True, num_segments=16, which_split=1, transform=None):
+    def __init__(self, root='', train=True, static=True, which_cam=1, num_segments=16, which_split=1, transform=None, **kwargs):
         super().__init__(num_segments)
         self.train = train
+        self.static = static
+        self.which_cam = which_cam
         self.which_split = which_split
         self.transform = transform
 
         self.root = root
         if not self.root:
             self.root = DATASET_ROOT
+            self.root += "_static" if self.static else "_dynamic"
 
         self.video_list = []
         self._parse_list()
@@ -57,18 +60,19 @@ class CTBC_Sparse(SparseDataset):
     def _parse_list(self):
         self._parse_class_names()
 
-        annot_path = 'datasets/lists/ctbc/ctbc_%s_split%02d.csv' % ('train' if self.train else 'test', self.which_split)
+        annot_path = os.path.join(os.path.dirname(__file__), 'lists/ctbc_v2/ctbc_v2_%s_split%02d.csv' % ('train' if self.train else 'test', self.which_split))
         video_info = pd.read_csv(annot_path, header=None)
 
         for _, row in video_info.iterrows():
             vpath, vsubject, vcam, vlabel, vlen = row
-            self.video_list.append(VideoRecord((os.path.join(self.root, vpath), vlen, vlabel)))
+            if self.which_cam == 0 or (int(vcam) == self.which_cam):
+                self.video_list.append(VideoRecord((os.path.join(self.root, vpath), vlen, vlabel)))
 
     def _parse_class_names(self):
         self.class_dict_encode = {}
         self.class_dict_decode = {}
 
-        class_desc_file = 'datasets/lists/ctbc/ctbc_classInd.txt'
+        class_desc_file = os.path.join(os.path.dirname(__file__), 'lists/ctbc_v2/ctbc_classInd.txt')
         class_info = pd.read_csv(class_desc_file, sep=' ', header=None)
         for _, row in class_info.iterrows():
             class_idx, class_name = row
@@ -83,9 +87,11 @@ class CTBC_Sparse(SparseDataset):
         
 
 class CTBC_Dense(DenseDataset):
-    def __init__(self, root='', train=True, num_segments=10, which_split=1, transform=None, num_frames_per_clip=16, sample_uniform=False, temporal_stride=1):
+    def __init__(self, root='', train=True, static=True, which_cam=1, num_segments=10, which_split=1, transform=None, num_frames_per_clip=16, sample_uniform=False, temporal_stride=1, **kwargs):
         super().__init__(num_segments, num_frames_per_clip, temporal_stride)
         self.train = train
+        self.static = static
+        self.which_cam = which_cam
         self.which_split = which_split
         self.transform = transform
         self.sample_uniform = sample_uniform
@@ -93,6 +99,7 @@ class CTBC_Dense(DenseDataset):
         self.root = root
         if not self.root:
             self.root = DATASET_ROOT
+            self.root += "_static" if self.static else "_dynamic"
 
         self.video_list = []
         self._parse_list()
@@ -139,18 +146,19 @@ class CTBC_Dense(DenseDataset):
     def _parse_list(self):
         self._parse_class_names()
 
-        annot_path = 'datasets/lists/ctbc/ctbc_%s_split%02d.csv' % ('train' if self.train else 'test', self.which_split)
+        annot_path = os.path.join(os.path.dirname(__file__), 'lists/ctbc_v2/ctbc_v2_%s_split%02d.csv' % ('train' if self.train else 'test', self.which_split))
         video_info = pd.read_csv(annot_path, header=None)
 
         for _, row in video_info.iterrows():
             vpath, vsubject, vcam, vlabel, vlen = row
-            self.video_list.append(VideoRecord((os.path.join(self.root, vpath), vlen, vlabel)))
+            if self.which_cam == 0 or (int(vcam) == self.which_cam):
+                self.video_list.append(VideoRecord((os.path.join(self.root, vpath), vlen, vlabel)))
 
     def _parse_class_names(self):
         self.class_dict_encode = {}
         self.class_dict_decode = {}
 
-        class_desc_file = 'datasets/lists/ctbc/ctbc_classInd.txt'
+        class_desc_file = os.path.join(os.path.dirname(__file__), 'lists/ctbc_v2/ctbc_classInd.txt')
         class_info = pd.read_csv(class_desc_file, sep=' ', header=None)
         for _, row in class_info.iterrows():
             class_idx, class_name = row

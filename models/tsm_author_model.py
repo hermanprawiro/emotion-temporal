@@ -873,13 +873,13 @@ class TSN(nn.Module):
                                                    GroupRandomHorizontalFlip(is_flow=False)])
 
 class Network(nn.Module):
-    def __init__(self, pretrained=True, n_class=10):
+    def __init__(self, backbone='resnet50', pretrained=True, n_class=10):
         super().__init__()
 
-        self.net = TSN(400, 16, 'RGB', 'resnet50', partial_bn=False, is_shift=True, shift_div=8, shift_place='blockres')
+        self.net = TSN(400, 16, 'RGB', backbone, partial_bn=False, is_shift=True, shift_div=8, shift_place='blockres')
         self.conv_dim = 2048
 
-        if pretrained:
+        if pretrained and backbone == 'resnet50':
             checkpoint = torch.load('models/TSM_kinetics_RGB_resnet50_shift8_blockres_avg_segment16_e50.pth')
             checkpoint = checkpoint['state_dict']
 

@@ -12,16 +12,19 @@ class Network(nn.Module):
         if backbone == 'resnet34':
             self.net = torchvision.models.resnet34(pretrained=pretrained)
             self.conv_dim = 512
+            self.conv_pool_dim = self.conv_dim
         elif backbone == 'resnet50':
             self.net = torchvision.models.resnet50(pretrained=pretrained)
             self.conv_dim = 2048
+            self.conv_pool_dim = 512
         else:
             self.net = torchvision.models.resnet18(pretrained=pretrained)
             self.conv_dim = 512
+            self.conv_pool_dim = self.conv_dim
 
         if pooling == 'conv':
             self.pool = nn.Sequential(
-                nn.Conv3d(self.conv_dim, self.conv_dim, 3, stride=1, padding=1),
+                nn.Conv3d(self.conv_dim, self.conv_pool_dim, 3, stride=1, padding=1),
                 nn.ReLU(),
                 nn.AdaptiveMaxPool3d((1, 1, 1))
             )
@@ -35,7 +38,7 @@ class Network(nn.Module):
         self.net.avgpool = nn.Identity()
         self.net.fc = nn.Identity()
 
-        self.classifier = nn.Linear(self.conv_dim, n_class)
+        self.classifier = nn.Linear(self.conv_pool_dim, n_class)
 
     def forward(self, x):
         # x is a 5D tensor (batch, channel, frame, height, width)

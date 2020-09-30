@@ -5,28 +5,37 @@ import torch.nn.functional as F
 import torchvision
 
 class Network(nn.Module):
-    def __init__(self, backbone='r3d', n_class=10, pretrained=True):
+    def __init__(self, backbone='resnet50', pooling='avg', pretrained=True, n_class=10):
         super().__init__()
 
-        if backbone == 'r3d':
-            self.net = torchvision.models.video.r3d_18(pretrained=pretrained)
-        elif backbone == 'mc':
-            self.net = torchvision.models.video.mc3_18(pretrained=pretrained)
+        if backbone == 'resnet34':
+            self.net = torchvision.models.resnet34(pretrained=pretrained)
+            self.conv_dim = 512
+        elif backbone == 'resnet50':
+            self.net = torchvision.models.resnet50(pretrained=pretrained)
+            self.conv_dim = 2048
         else:
-            self.net = torchvision.models.video.r2plus1d_18(pretrained=pretrained)
+            self.net = torchvision.models.resnet18(pretrained=pretrained)
+            self.conv_dim = 512
 
         self.modify_output_channels(n_class)
 
-    def forward(self, x):
+    def forward(self, x, average_logits=True):
         # x is a 5D tensor (batch, channel, frame, height, width)
+        # N, C, T, H, W = x.size()
+        # x = x.permute(0, 2, 1, 3, 4)
+        # x = x.reshape(N * T, C, H, W)
 
         logits = self.net(x)
+        # logits = logits.view(N, T, -1)
+        if average_logits:
+            logits = logits.mean(1)
 
         return logits
 
     def modify_input_channels(self, new_input_channel):
         modules = list(self.net.modules())
-        first_conv_idx = list(filter(lambda x: isinstance(modules[x], nn.Conv3d), list(range(len(modules)))))[0]
+        first_conv_idx = list(filter(lambda x: isinstance(modules[x], nn.Conv2d), list(range(len(modules)))))[0]
         first_conv = modules[first_conv_idx]
         container = modules[first_conv_idx - 1]
         params = [x.clone() for x in first_conv.parameters()]
@@ -35,7 +44,7 @@ class Network(nn.Module):
         new_kernel_size = kernel_size[:1] + (new_input_channel,) + kernel_size[2:]
 
         new_kernel = params[0].data.mean(dim=1, keepdim=True).expand(new_kernel_size).contiguous()
-        new_conv = nn.Conv3d(new_input_channel, first_conv.out_channels, first_conv.kernel_size, first_conv.stride, first_conv.padding, bias=has_bias)
+        new_conv = nn.Conv2d(new_input_channel, first_conv.out_channels, first_conv.kernel_size, first_conv.stride, first_conv.padding, bias=has_bias)
         new_conv.weight.data = new_kernel
         if has_bias:
             new_conv.bias.data = params[1].data
