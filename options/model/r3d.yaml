@@ -1,0 +1,5 @@
+# @package _group_
+arch: r3d
+backbone: r3d
+pooling: ~
+pretrained: True

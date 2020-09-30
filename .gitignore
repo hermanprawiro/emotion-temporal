@@ -124,8 +124,11 @@ dmypy.json
 # End of https://www.gitignore.io/api/python
 
 .vscode/
+.vs/
 checkpoints/*
 logs/*
 results/*
 pretrained/*
+outputs/*
+multirun/*
 *.pth

@@ -1,0 +1,10 @@
+# @package _group_
+dataset: ctbc2
+sampling: sparse
+n_class: 7
+batch_size: 16
+image_res: 112
+n_segments: 16
+static: False
+split: 1
+camera: 0
