@@ -153,8 +153,8 @@ def train(args, loader, model, scaler, criterion, optimizer, epoch, writer=None)
         # measure elapsed time
         batch_time.update(time.time() - end)
 
-        if i % 5 == 4:
-            print('Epoch: [{0}][{1}/{2}]\t'
+        if i % 10 == 9:
+            message = ('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -162,6 +162,8 @@ def train(args, loader, model, scaler, criterion, optimizer, epoch, writer=None)
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                    epoch+1, i+1, len(loader), batch_time=batch_time,
                    data_time=data_time, loss=losses, top1=top1, top5=top5))
+            print(message)
+            logging.info(message)
 
     if writer is not None:
         writer.add_scalar('Loss/train', losses.avg, epoch)
@@ -228,7 +230,7 @@ def validate(args, loader, model, criterion, epoch=0, writer=None, show_confusio
 
         message = ('* Loss {loss.avg:.4f}\t'
                 'Prec@1 {top1.avg:.3f}\t'
-                'Prec@3 {top3.avg:.3f}').format(loss=losses, top1=top1, top3=top3)
+                'Prec@5 {top5.avg:.3f}').format(loss=losses, top1=top1, top5=top5)
         print(message)
         logging.info(message)
 
